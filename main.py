@@ -4,6 +4,11 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
+import os
+from openai import OpenAI
+
+
+
 load_dotenv()
 
 app = FastAPI()
@@ -16,7 +21,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    raise RuntimeError("OPENAI_API_KEY is missing")
+
+client = OpenAI(api_key=api_key)
 
 @app.post("/generate")
 async def generate_speech(
