@@ -1,11 +1,21 @@
 from fastapi import FastAPI, Form
 from fastapi.middleware.cors import CORSMiddleware
-from openai import OpenAI
-import os
 from dotenv import load_dotenv
-
-import os
 from openai import OpenAI
+import smtplib
+from email.message import EmailMessage
+import os
+
+def envoyer_discours(destinataire: str, contenu: str):
+    msg = EmailMessage()
+    msg["Subject"] = "Votre discours de mariage complet 💍"
+    msg["From"] = os.getenv("EMAIL_FROM")  # ton adresse
+    msg["To"] = destinataire
+    msg.set_content(contenu)
+
+    with smtplib.SMTP_SSL("mail.infomaniak.com", 465) as smtp:
+        smtp.login(os.getenv("EMAIL_FROM"), os.getenv("EMAIL_PASSWORD"))
+        smtp.send_message(msg)
 
 
 
@@ -70,3 +80,26 @@ async def generate_speech(
     )
 
     return {"speech": response.choices[0].message.content}
+
+EMAIL_FROM = os.getenv("EMAIL_FROM")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+
+
+@app.post("/send-discours")
+async def send_discours(email: str = Form(...), discours: str = Form(...)):
+    if not EMAIL_FROM or not EMAIL_PASSWORD:
+        return {"status": "error", "message": "Configuration e-mail manquante"}
+
+    msg = EmailMessage()
+    msg["Subject"] = "Votre discours de mariage complet 💍"
+    msg["From"] = EMAIL_FROM
+    msg["To"] = email
+    msg.set_content(discours)
+
+    try:
+        with smtplib.SMTP_SSL("mail.infomaniak.com", 465) as smtp:
+            smtp.login(EMAIL_FROM, EMAIL_PASSWORD)
+            smtp.send_message(msg)
+        return {"status": "success", "message": "Email envoyé"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
