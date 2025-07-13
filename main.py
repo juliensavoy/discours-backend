@@ -5,6 +5,7 @@ from openai import OpenAI
 import smtplib
 from email.message import EmailMessage
 import os
+from notion_client import Client
 
 def envoyer_discours(destinataire: str, contenu: str):
     msg = EmailMessage()
@@ -36,6 +37,43 @@ if not api_key:
     raise RuntimeError("OPENAI_API_KEY is missing")
 
 client = OpenAI(api_key=api_key)
+
+NOTION_TOKEN = os.getenv("NOTION_TOKEN")
+NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
+
+
+def log_to_notion(
+    discours: str,
+    prenom: str,
+    marie: str,
+    partenaire: str,
+    style: str,
+    lien: str,
+    rencontre: str,
+    qualites: str,
+    anecdotes: str,
+    souvenir: str,
+    duree: str,
+):
+    try:
+        notion = Client(auth=NOTION_TOKEN)
+        properties = {
+            "Discours": {"title": [{"text": {"content": discours or ""}}]},
+            "Prénom": {"rich_text": [{"text": {"content": prenom or ""}}]},
+            "Marié": {"rich_text": [{"text": {"content": marie or ""}}]},
+            "Partenaire": {"rich_text": [{"text": {"content": partenaire or ""}}]},
+            "Style": {"rich_text": [{"text": {"content": style or ""}}]},
+            "Lien": {"rich_text": [{"text": {"content": lien or ""}}]},
+            "Rencontre": {"rich_text": [{"text": {"content": rencontre or ""}}]},
+            "Qualités": {"rich_text": [{"text": {"content": qualites or ""}}]},
+            "Anecdotes": {"rich_text": [{"text": {"content": anecdotes or ""}}]},
+            "Souvenirs": {"rich_text": [{"text": {"content": souvenir or ""}}]},
+            "Durée": {"rich_text": [{"text": {"content": duree or ""}}]},
+        }
+        notion.pages.create(parent={"database_id": NOTION_DATABASE_ID}, properties=properties)
+    except Exception:
+        pass
+
 
 @app.post("/generate")
 async def generate_speech(
@@ -79,7 +117,22 @@ async def generate_speech(
         max_tokens=1000
     )
 
-    return {"speech": response.choices[0].message.content}
+    speech = response.choices[0].message.content
+    # Log to Notion (erreur silencieuse)
+    log_to_notion(
+        discours=speech,
+        prenom=prenom,
+        marie=marie,
+        partenaire=partenaire,
+        style=style or "",
+        lien=lien,
+        rencontre=rencontre or "",
+        qualites=qualites or "",
+        anecdotes=anecdotes or "",
+        souvenir=souvenir or "",
+        duree=duree or "",
+    )
+    return {"speech": speech}
 
 EMAIL_FROM = os.getenv("EMAIL_FROM")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
