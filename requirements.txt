@@ -3,4 +3,4 @@ uvicorn[standard]
 python-dotenv
 openai
 python-multipart
-notion-client
+supabase
