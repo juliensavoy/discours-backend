@@ -5,6 +5,7 @@ from openai import OpenAI
 import smtplib
 from email.message import EmailMessage
 import os
+from datetime import datetime
 from supabase import create_client, Client
 
 def envoyer_discours(destinataire: str, contenu: str):
@@ -136,3 +137,12 @@ async def send_discours(email: str = Form(...), discours: str = Form(...)):
         return {"status": "success", "message": "Email envoyé"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+    
+@app.get("/ping", tags=["Health"])
+async def ping():
+    """Endpoint simple pour les pings (UptimeRobot, etc.)"""
+    return {
+        "status": "ok",
+        "timestamp": datetime.now().isoformat(),
+        "service": "Discours de mariage backend"
+    }
